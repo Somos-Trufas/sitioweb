@@ -1,0 +1,36 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  animation: logo-spin infinite 3s linear;
+}
+
+@keyframes logo-spin {
+  0% {
+    filter: none;
+  }
+  50% {
+    filter: drop-shadow(0 0 2em #646cffaa)
+  }
+  100% {
+    filter: none;
+  }
+}
+
+.card {
+  padding: 2em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.read-the-docs {
+  color: #888;
+}
