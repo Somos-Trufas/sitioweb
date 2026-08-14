@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Datos contables — NO subir a este repo.
+# El repositorio es público y la contabilidad identifica a personas reales
+# (montos cobrados por colaborador). Estos archivos se generan localmente con
+# `pnpm sync:finanzas`. Ver docs/finanzas.md antes de cambiar esta regla.
+datos-crudos/
+src/data/movimientos.json
+
+# Credenciales del sincronizador
+.env
+.env.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
