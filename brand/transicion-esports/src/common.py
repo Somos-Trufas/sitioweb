@@ -211,10 +211,20 @@ def sil_mask(scale, rot=0.0, fcx=None, fcy=None):
                          resample=Image.BILINEAR, fillcolor=0)
 
 
+def font_path(name):
+    """`name` puede ser una lista: devuelve el primero que exista, o None."""
+    for n in ([name] if isinstance(name, str) else name):
+        p = os.path.join(FONTS, n)
+        if os.path.exists(p):
+            return p
+    return None
+
+
 def font(name, size):
+    p = font_path(name)
     try:
-        return ImageFont.truetype(os.path.join(FONTS, name), int(size))
-    except OSError:
+        return ImageFont.truetype(p, int(size))
+    except (OSError, TypeError):
         return ImageFont.load_default()
 
 

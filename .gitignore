@@ -27,3 +27,6 @@ dist-ssr
 brand/transicion-esports/src/out/
 __pycache__/
 *.pyc
+
+# Dharma Gothic M es comercial: licenciada por Somos Trufas, no se redistribuye
+brand/transicion-esports/src/fonts/DharmaGothic*

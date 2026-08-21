@@ -58,10 +58,18 @@ El logotipo *TRUFAS* y el lockup de `src/assets/` se extrajeron del propio manua
 (página 7, versión negativa) desmultiplicando el alpha sobre el panel sólido: son
 la curva original dibujada a mano, no una recreación tipográfica.
 
-El rótulo *REPLAY* va en **Bebas Neue**, el sustituto libre habitual de **Dharma
-Gothic M**, que es la display del manual pero es comercial y no está en el repo.
-Si la licencian, basta con dejar el `.ttf` en `src/fonts/` y cambiar
-`FONT_DISPLAY` en `src/replay.py`.
+El rótulo *REPLAY* va en **Dharma Gothic M Heavy**, la display del manual.
+
+Es una tipografía **comercial**, así que el `.ttf` no se versiona: subirlo al
+repositorio sería redistribuirla. Está en el Drive de la organización
+(`Branding Público / Fonts / Dharma Gothic M`); para regenerar el replay con la
+tipografía real hay que copiar `DharmaGothicM-Heavy.ttf` a `src/fonts/`. Si
+falta, el render cae en Bebas Neue —el sustituto libre habitual, sí incluido— y
+avisa de cuál está usando:
+
+    [replay] Replay  (rotulo en DharmaGothicM-Heavy.ttf)
+
+Ver `src/fonts/README.md`.
 
 ## Regenerar
 

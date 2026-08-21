@@ -6,9 +6,9 @@ Dos mitades convergen sobre la diagonal de marca, se juntan sobre el rotulo
 REPLAY con estetica de cinta (lineas de barrido, chevrones de rebobinado y
 saltos de imagen) y se separan para dejar ver la repeticion.
 
-El rotulo va en Bebas Neue, que es el sustituto libre habitual de Dharma
-Gothic M, la display del manual: es comercial y no esta en el repo. Si la
-licencian, basta con dejar el .ttf en fonts/ y cambiar FONT_DISPLAY.
+El rotulo va en Dharma Gothic M Heavy, la display del manual de marca. Es una
+tipografia comercial: el .ttf NO se versiona (ver fonts/README.md). Si falta,
+cae en Bebas Neue, que es el sustituto libre habitual y esta incluido.
 """
 
 from common import *
@@ -17,7 +17,10 @@ NAME = "replay"
 TITLE = "Replay"
 CUT_POINT = 0.50
 
-FONT_DISPLAY = "BebasNeue-Regular.ttf"
+FONT_DISPLAY = ["DharmaGothicM-Heavy.ttf",     # display del manual (comercial)
+                "BebasNeue-Regular.ttf"]       # respaldo libre
+NOTE = "rotulo en %s" % os.path.basename(
+    font_path(FONT_DISPLAY) or "tipografia por defecto")
 
 YEL_IN, ORG_IN, DARK_IN = (0.00, 0.24), (0.05, 0.29), (0.10, 0.34)
 DARK_OUT, ORG_OUT, YEL_OUT = (0.60, 0.86), (0.64, 0.90), (0.68, 0.96)
@@ -118,7 +121,7 @@ _MEASURE = ImageDraw.Draw(Image.new("L", (1, 1)))
 
 def word_metrics(size):
     f = font(FONT_DISPLAY, size)
-    track = size * 0.07
+    track = size * 0.10
     widths = [_MEASURE.textlength(ch, font=f) for ch in "REPLAY"]
     return f, track, widths, sum(widths) + track * (len("REPLAY") - 1)
 
@@ -196,7 +199,7 @@ def card(t, f):
     c = textured_bg(t, speed1=0.10, speed2=0.26)
     c.alpha_composite(scanlines())
 
-    size = H * 0.215
+    size = H * 0.25
     _, _, _, tw = word_metrics(size)
     mh = H * 0.21
     m = assets()["mascot"]

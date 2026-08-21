@@ -29,7 +29,8 @@ def build(name, preview=None):
         print("  preview %s: %s" % (style.NAME, preview))
         return
 
-    print("[%s] %s" % (style.NAME, style.TITLE))
+    print("[%s] %s%s" % (style.NAME, style.TITLE,
+                          "  (%s)" % style.NOTE if hasattr(style, "NOTE") else ""))
     C.render_sequence(style)
 
     a, b, n = C.coverage(style)
