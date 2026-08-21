@@ -1,42 +1,51 @@
-# Transición esports — Somos Trufas
+# Transiciones esports — Somos Trufas
 
-Stinger de **1,000 s exacto** (60 frames a 60 fps), 1920×1080 (16:9), con canal alpha.
+Tres stingers de **1,000 s exacto** (60 frames a 60 fps), 1920×1080 (16:9), en
+WebM VP9 **con canal alpha**. Listos para OBS / vMix / Streamlabs.
 
-| Archivo | Uso |
-|---|---|
-| `transicion-somos-trufas-1080p60.webm` | El stinger. VP9 con alpha, 3,2 MB. Para OBS / vMix / Streamlabs. |
-| `transicion-somos-trufas-DEMO-1080p60.mp4` | Vista previa de 2 s: escena A → transición → escena B. |
-
-El master **ProRes 4444 con alpha** (~98 MB) no se versiona por peso. Se regenera
-con `src/encode.py` y es el que conviene pasarle a un editor de video.
+| Archivo | Estilo | Para qué |
+|---|---|---|
+| `transicion-barrido-1080p60.webm` | Bandas diagonales | Transición general entre escenas |
+| `transicion-iris-1080p60.webm` | Iris de mascota | Transición general, alternativa a la anterior |
+| `transicion-replay-1080p60.webm` | Replay | Entrar (y salir) de una repetición |
 
 ## Punto de corte
 
-La pantalla queda **100 % cubierta entre 0,175 s y 0,775 s**. El cambio de escena
-tiene que caer dentro de esa ventana o se verá el corte.
+Cada transición tapa la pantalla por completo durante una ventana. El cambio de
+escena tiene que caer dentro o se verá el corte.
 
-- **OBS** → Transiciones → *Stinger* → archivo `.webm` → **Punto de transición: 500 ms**
+| Estilo | Ventana 100 % opaca | Punto de transición |
+|---|---|---|
+| Barrido | 0,175 – 0,775 s | **500 ms** |
+| Iris | 0,208 – 0,692 s | **500 ms** |
+| Replay | 0,208 – 0,692 s | **500 ms** |
 
-Eso deja 325 ms de margen antes y 275 ms después.
+En **OBS**: Transiciones → *Stinger* → el `.webm` → Punto de transición 500 ms.
 
-## Anatomía
+## Los tres estilos
 
-| Tiempo | Qué pasa |
-|---|---|
-| 0,00–0,10 s | Esquirlas diagonales cruzan la pantalla de derecha a izquierda |
-| 0,00–0,34 s | Tres bandas a 18° barren en cascada: amarillo → naranja → marrón |
-| 0,24–0,40 s | La mascota entra con sobre-escala, giro y desenfoque de movimiento |
-| 0,29–0,45 s | El logotipo *TRUFAS* se revela con un barrido desde detrás de la mascota |
-| **0,385 s** | Impacto: destello, onda de choque, ráfaga radial y aberración cromática |
-| 0,40–0,60 s | Sostenido sobre el lockup oficial |
-| 0,60–0,96 s | Las bandas salen hacia la izquierda en cascada y revelan la escena nueva |
+**Barrido** — Tres bandas a 18° cruzan de derecha a izquierda, la mascota golpea
+en el centro con sobre-escala y desenfoque, el logotipo *TRUFAS* se revela desde
+detrás de ella, y las bandas salen en cascada por la izquierda. El logo acompaña
+la salida con parallax y se recorta contra el borde de la banda.
 
-El logo acompaña la salida con parallax (34 % de la velocidad de la banda) y se
-recorta contra el borde de la banda marrón, no se desvanece.
+**Iris** — La silueta de la propia mascota crece desde un punto en el centro
+hasta tragarse la pantalla, y después se abre como un agujero con la misma forma
+para revelar la escena nueva. El mecanismo es radial en vez de lineal: es lo que
+lo diferencia del barrido aunque comparta paleta y lockup. Las tres capas de
+color entran escalonadas, así que la silueta deja un reborde amarillo y naranja
+al crecer. A tamaño grande la silueta lee como una forma orgánica más que como
+la mascota; se reconoce durante los primeros seis o siete frames.
+
+**Replay** — Dos mitades convergen sobre la diagonal de marca y se juntan sobre
+el rótulo *REPLAY*, con estética de cinta: líneas de barrido, chevrones de
+rebobinado, saltos horizontales de imagen y un barrido de luz. Después se separan
+para dejar ver la repetición. El filo brillante del corte se apaga al juntarse
+las mitades —si no, la línea parte el rótulo por la mitad— y vuelve al separarse.
 
 ## Marca
 
-Todo sale del *Manual de Identidad TRUFAS* (agosto 2025):
+Del *Manual de Identidad TRUFAS* (agosto 2025):
 
 | Color | Hex |
 |---|---|
@@ -45,36 +54,49 @@ Todo sale del *Manual de Identidad TRUFAS* (agosto 2025):
 | Acento | `#FF9A21` |
 | Fondo | `#452B22` |
 
-El logotipo *TRUFAS* y el lockup de `src/assets/` **se extrajeron del propio manual**
-(página 7, versión negativa) desmultiplicando el alpha sobre el panel sólido. Son la
-curva original dibujada a mano, no una recreación con tipografía — la display de marca
-es Dharma Gothic M, que es comercial y no reproduce esas terminaciones redondeadas.
+El logotipo *TRUFAS* y el lockup de `src/assets/` se extrajeron del propio manual
+(página 7, versión negativa) desmultiplicando el alpha sobre el panel sólido: son
+la curva original dibujada a mano, no una recreación tipográfica.
 
-La mascota se usa a todo color: su contorno amarillo es justamente lo que la hace
-legible sobre el fondo oscuro.
+El rótulo *REPLAY* va en **Bebas Neue**, el sustituto libre habitual de **Dharma
+Gothic M**, que es la display del manual pero es comercial y no está en el repo.
+Si la licencian, basta con dejar el `.ttf` en `src/fonts/` y cambiar
+`FONT_DISPLAY` en `src/replay.py`.
 
 ## Regenerar
 
 ```bash
 pip install pillow numpy        # requiere además ffmpeg
 cd src
-python3 render.py               # 60 PNG RGBA en out/frames  (~90 s)
-python3 encode.py               # webm + mov + mp4 demo, y verifica el alpha
+python3 build.py                # los tres  (~5 min)
+python3 build.py replay         # solo uno
+python3 build.py iris --preview 10,24,36
 ```
 
-`SS=3` es el supersampling por defecto; `SS=1 python3 render.py` acelera las pruebas
-a costa del antialiasing en las diagonales.
+`build.py` comprueba en cada render que la ventana opaca contiene el punto de
+corte y que el alpha sobrevivió a la codificación.
 
-Las escenas de la demo usan Bebas Neue y Poppins (ambas OFL, no versionadas); si no
-están, cae a la tipografía por defecto sin romper nada.
+`SS=3` es el supersampling por defecto; `SS=1 python3 build.py` acelera las
+pruebas a costa del antialiasing en las diagonales.
+
+### Estructura
+
+    src/common.py    paleta, easing, geometría, assets, pipeline y codificación
+    src/sweep.py     estilo 1
+    src/iris.py      estilo 2
+    src/replay.py    estilo 3
+    src/build.py     CLI
+
+Un estilo es un módulo que expone `NAME`, `TITLE`, `CUT_POINT` y
+`frame(f) -> RGBA`. Añadir uno nuevo es escribir ese módulo y sumarlo a `STYLES`.
 
 ### Nota sobre el alpha en WebM
 
-ffmpeg guarda el alpha de WebM en un stream aparte y **el decoder nativo lo ignora**.
-Para comprobarlo hay que pedir el decoder explícitamente:
+ffmpeg guarda el alpha de WebM en un stream aparte y **el decoder nativo lo
+ignora**. Para comprobarlo hay que pedir el decoder explícitamente:
 
 ```bash
-ffmpeg -c:v libvpx-vp9 -i transicion-somos-trufas-1080p60.webm -vframes 1 -pix_fmt rgba chk.png
+ffmpeg -c:v libvpx-vp9 -i transicion-replay-1080p60.webm -vframes 1 -pix_fmt rgba chk.png
 ```
 
-Sin `-c:v libvpx-vp9` el frame sale opaco y parece que el alpha se perdió. No es así.
+Sin `-c:v libvpx-vp9` el frame sale opaco y parece que el alpha se perdió.

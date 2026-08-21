@@ -25,3 +25,5 @@ dist-ssr
 
 # Motion: intermedios de render (frames PNG, masters ProRes)
 brand/transicion-esports/src/out/
+__pycache__/
+*.pyc
