@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Motion: intermedios de render (frames PNG, masters ProRes)
+brand/transicion-esports/src/out/
