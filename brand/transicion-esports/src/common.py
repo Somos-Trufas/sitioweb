@@ -24,7 +24,9 @@ ASSETS = os.path.join(ROOT, "assets")
 FONTS = os.path.join(ROOT, "fonts")
 OUT = os.path.join(ROOT, "out")
 
-W0, H0 = 1920, 1080
+# FORMAT=vertical -> 1080x1920 (9:16, reels). Por defecto 1920x1080 (16:9).
+VERTICAL = os.environ.get("FORMAT", "").lower() in ("v", "vertical", "9:16")
+W0, H0 = (1080, 1920) if VERTICAL else (1920, 1080)
 S = int(os.environ.get("SS", "3"))           # supersampling
 W, H = W0 * S, H0 * S
 FPS, N = 60, 60                              # 60 frames = 1.000 s exacto
@@ -78,10 +80,41 @@ def accel(p, k=1.9):
 
 
 # ------------------------------------------------------- bandas diagonales ----
-SLABW = W * 1.42
+# En 9:16 la diagonal de 18 grados se come mas ancho relativo, asi que la banda
+# tiene que ser mas larga para seguir tapando de esquina a esquina.
+SLABW = max(W * 1.42, W + SKEW + W * 0.12)
 XB_IN = -SKEW - W * 0.04
 XB_RIGHT = W * 1.10
 XB_LEFT = -(SLABW + SKEW + W * 0.08)
+
+# Version transpuesta: bandas que barren de abajo arriba, con el mismo angulo.
+# Es lo que funciona en vertical, donde un barrido lateral cruza en nada.
+SKEWV = W * 0.325
+SLABH = max(H * 1.42, H + SKEWV + H * 0.12)
+YB_IN = -H * 0.04
+YB_BOTTOM = H * 1.10
+YB_TOP = -(SLABH + SKEWV + H * 0.08)
+
+
+def vslab_poly(yb):
+    return [(0, yb), (W, yb - SKEWV), (W, yb - SKEWV + SLABH), (0, yb + SLABH)]
+
+
+def vslab_y(t, tin, tout):
+    """Borde superior de una banda que sube. Mismo perfil que slab_x."""
+    if t < tin[1]:
+        return lerp(YB_BOTTOM, YB_IN, out_cubic(seg(t, *tin)))
+    if t < tout[0]:
+        return YB_IN
+    return lerp(YB_IN, YB_TOP, accel(seg(t, *tout)))
+
+
+def draw_vslab(layer, yb, color, edge=None, edge_w=0.0):
+    d = ImageDraw.Draw(layer)
+    d.polygon(vslab_poly(yb), fill=color + (255,))
+    if edge and edge_w > 0:
+        d.polygon([(0, yb), (W, yb - SKEWV), (W, yb - SKEWV + edge_w), (0, yb + edge_w)],
+                  fill=edge + (255,))
 
 
 def slab_poly(xb):
@@ -125,14 +158,15 @@ def _sil_pyramid(src):
 def _cover_scale(sil):
     """Ancho minimo (en multiplos del frame) para que la silueta tape todo."""
     small = sil.resize((256, max(1, int(256 * sil.height / sil.width))), Image.LANCZOS)
-    lo, hi = 0.6, 6.0
+    lo, hi = 0.6, 9.0
     for _ in range(22):
         mid = (lo + hi) / 2
         w = max(2, int(240 * mid))
         h = max(2, int(w * small.height / small.width))
         s = small.resize((w, h), Image.BILINEAR).point(lambda v: 255 if v > 128 else 0)
-        canvas = Image.new("L", (240, 135), 0)
-        canvas.paste(s, (120 - w // 2, 67 - h // 2))
+        fw, fh = 240, max(1, int(240 * H0 / W0))
+        canvas = Image.new("L", (fw, fh), 0)
+        canvas.paste(s, (fw // 2 - w // 2, fh // 2 - h // 2))
         if np.asarray(canvas).min() > 250:
             hi = mid
         else:
@@ -272,8 +306,15 @@ def textured_bg(t, speed1=0.38, speed2=0.90):
 
 
 # ----------------------------------------------------------- logo e impacto ----
-def draw_shockwave(card, t, impact, cx, cy, rings=True, burst=True):
-    """Onda de choque y rafaga radial. Se dibuja DETRAS del logo."""
+def draw_shockwave(card, t, impact, cx, cy, rings=True, burst=True,
+                   ring_scale=1.0, burst_scale=1.0):
+    """
+    Onda de choque y rafaga radial. Se dibuja DETRAS del logo.
+
+    Las medidas por defecto estan calibradas para el lockup horizontal. Con un
+    contenido mas grande (la mascota sola en vertical) hay que separarlas o el
+    anillo corta el logo y la rafaga queda escondida detras.
+    """
     fx = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(fx)
     if rings:
@@ -281,7 +322,7 @@ def draw_shockwave(card, t, impact, cx, cy, rings=True, burst=True):
         for delay, mult, col, life in ((0.0, 1.00, YEL, 0.12), (0.03, 0.66, WHITE, 0.10)):
             rp = seg(t, impact + delay, impact + delay + life)
             if 0 < rp < 1:
-                r = (W * 0.26 + out_expo(rp) * W * 0.80) * mult
+                r = (W * 0.26 * ring_scale + out_expo(rp) * W * 0.80) * mult
                 lw = max(2, int((1 - rp) ** 1.4 * W * 0.009 + 2))
                 al = int(((1 - rp) ** 2.6) * 215)
                 if al > 3 and r > 4:
@@ -292,8 +333,8 @@ def draw_shockwave(card, t, impact, cx, cy, rings=True, burst=True):
         if 0 < bp < 1:
             e = out_expo(bp)
             al = int(((1 - bp) ** 2.0) * 245)
-            r0 = W * 0.075 + e * W * 0.055
-            r1 = r0 + (1 - bp) * W * 0.045 + W * 0.008
+            r0 = (W * 0.075 + e * W * 0.055) * burst_scale
+            r1 = r0 + ((1 - bp) * W * 0.045 + W * 0.008) * burst_scale
             for i in range(12):
                 ang = (i / 12) * math.tau + 0.26
                 lw = max(3, int((1 - bp) * W * 0.0075) + 2)
@@ -301,6 +342,34 @@ def draw_shockwave(card, t, impact, cx, cy, rings=True, burst=True):
                         cx + r1 * math.cos(ang), cy + r1 * math.sin(ang)],
                        fill=YEL + (al,), width=lw)
     card.alpha_composite(fx)
+
+
+def draw_mascot_hit(card, t, mascot_t, cx, cy, width):
+    """La mascota entra con sobre-escala, giro y desenfoque, centrada en (cx, cy)."""
+    p = seg(t, *mascot_t)
+    if p <= 0:
+        return
+    e = out_expo(p)
+    sc = 1.0 + 1.20 * (1 - e)
+    if t > mascot_t[1]:                              # rebote corto al aterrizar
+        q = seg(t, mascot_t[1], mascot_t[1] + 0.16)
+        sc = 1.0 + 0.030 * math.sin(q * math.pi * 2) * (1 - q)
+    sc *= 1.0 + 0.014 * seg(t, mascot_t[1], mascot_t[1] + 0.22)
+
+    tw = width * sc
+    m = assets()["mascot"]
+    m = m.resize((max(1, int(tw)), max(1, int(tw * m.height / m.width))), Image.LANCZOS)
+    rot = -15.0 * (1 - e)
+    if abs(rot) > 0.15:
+        m = m.rotate(rot, resample=Image.BICUBIC, expand=True)
+    # el desenfoque va ligado al tamano de la mascota, no al del frame
+    blur = (1 - e) ** 1.4 * width * 0.105
+    if blur > 0.7:
+        m = m.filter(ImageFilter.GaussianBlur(blur))
+    op = min(1.0, seg(t, mascot_t[0], mascot_t[0] + 0.05))
+    if op < 1:
+        m.putalpha(m.getchannel("A").point(lambda v: int(v * op)))
+    card.alpha_composite(m, (int(cx - m.width / 2), int(cy - m.height / 2)))
 
 
 def draw_lockup(card, t, mascot_t, word_t, cx, cy, lock_w):
@@ -324,31 +393,10 @@ def draw_lockup(card, t, mascot_t, word_t, cx, cy, lock_w):
             card.alpha_composite(wm, (int(lx + lock_w * wrel[0] + (1 - e) * W * 0.018),
                                       int(ly + lock_w * wrel[1])))
 
-    mp = seg(t, *mascot_t)
-    if mp > 0:
-        e = out_expo(mp)
-        sc = 1.0 + 1.20 * (1 - e)
-        if t > mascot_t[1]:                          # rebote corto al aterrizar
-            q = seg(t, mascot_t[1], mascot_t[1] + 0.16)
-            sc = 1.0 + 0.030 * math.sin(q * math.pi * 2) * (1 - q)
-        sc *= 1.0 + 0.014 * seg(t, mascot_t[1], mascot_t[1] + 0.22)
-
-        tw = lock_w * mrel[2] * sc
-        m = a["mascot"]
-        m = m.resize((max(1, int(tw)), max(1, int(tw * m.height / m.width))),
-                     Image.LANCZOS)
-        rot = -15.0 * (1 - e)
-        if abs(rot) > 0.15:
-            m = m.rotate(rot, resample=Image.BICUBIC, expand=True)
-        blur = (1 - e) ** 1.4 * W * 0.010
-        if blur > 0.7:
-            m = m.filter(ImageFilter.GaussianBlur(blur))
-        op = min(1.0, seg(t, mascot_t[0], mascot_t[0] + 0.05))
-        if op < 1:
-            m.putalpha(m.getchannel("A").point(lambda v: int(v * op)))
-        mcx = lx + lock_w * (mrel[0] + mrel[2] / 2)
-        mcy = ly + lock_w * (mrel[1] + mrel[3] / 2)
-        card.alpha_composite(m, (int(mcx - m.width / 2), int(mcy - m.height / 2)))
+    draw_mascot_hit(card, t, mascot_t,
+                    lx + lock_w * (mrel[0] + mrel[2] / 2),
+                    ly + lock_w * (mrel[1] + mrel[3] / 2),
+                    lock_w * mrel[2])
 
 
 def flash(card, t, impact, peak=150, lead=0.02, life=0.075):

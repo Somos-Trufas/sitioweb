@@ -1,13 +1,15 @@
 # Transiciones esports — Somos Trufas
 
-Tres stingers de **1,000 s exacto** (60 frames a 60 fps), 1920×1080 (16:9), en
-WebM VP9 **con canal alpha**. Listos para OBS / vMix / Streamlabs.
+Cuatro stingers de **1,000 s exacto** (60 frames a 60 fps) en WebM VP9 **con
+canal alpha**: tres en 1920×1080 (16:9) para OBS / vMix / Streamlabs, y uno en
+1080×1920 (9:16) para reels.
 
-| Archivo | Estilo | Para qué |
-|---|---|---|
-| `transicion-barrido-1080p60.webm` | Bandas diagonales | Transición general entre escenas |
-| `transicion-iris-1080p60.webm` | Iris de mascota | Transición general, alternativa a la anterior |
-| `transicion-replay-1080p60.webm` | Replay | Entrar (y salir) de una repetición |
+| Archivo | Formato | Estilo | Para qué |
+|---|---|---|---|
+| `transicion-barrido-1080p60.webm` | 16:9 | Bandas diagonales | Transición general entre escenas |
+| `transicion-iris-1080p60.webm` | 16:9 | Iris de mascota | Transición general, alternativa a la anterior |
+| `transicion-replay-1080p60.webm` | 16:9 | Replay | Entrar (y salir) de una repetición |
+| `transicion-reel-1080x1920p60.webm` | 9:16 | Reel, solo mascota | Reels / Shorts / TikTok |
 
 ## Punto de corte
 
@@ -19,10 +21,15 @@ escena tiene que caer dentro o se verá el corte.
 | Barrido | 0,175 – 0,775 s | **500 ms** |
 | Iris | 0,208 – 0,692 s | **500 ms** |
 | Replay | 0,208 – 0,692 s | **500 ms** |
+| Reel (9:16) | 0,175 – 0,758 s | **500 ms** |
 
 En **OBS**: Transiciones → *Stinger* → el `.webm` → Punto de transición 500 ms.
 
-## Los tres estilos
+El reel vertical no se usa en OBS sino en el editor (CapCut, Premiere, After
+Effects): se monta sobre el corte entre dos clips, con el cambio a 0,5 s del
+inicio de la transición.
+
+## Los cuatro estilos
 
 **Barrido** — Tres bandas a 18° cruzan de derecha a izquierda, la mascota golpea
 en el centro con sobre-escala y desenfoque, el logotipo *TRUFAS* se revela desde
@@ -42,6 +49,12 @@ el rótulo *REPLAY*, con estética de cinta: líneas de barrido, chevrones de
 rebobinado, saltos horizontales de imagen y un barrido de luz. Después se separan
 para dejar ver la repetición. El filo brillante del corte se apaga al juntarse
 las mitades —si no, la línea parte el rótulo por la mitad— y vuelve al separarse.
+
+**Reel** (vertical) — Las mismas bandas de 18°, pero transpuestas: barren de
+abajo arriba. Un barrido lateral cruzaría los 1080 px de ancho en nada y se
+perdería el gesto. Va **solo la mascota, sin logotipo**: el lockup oficial es
+horizontal y en un frame estrecho quedaría diminuto. La mascota ocupa el 62 % del
+ancho y queda centrada, dentro del área segura de Reels y TikTok.
 
 ## Marca
 
@@ -74,12 +87,17 @@ Ver `src/fonts/README.md`.
 ## Regenerar
 
 ```bash
-pip install pillow numpy        # requiere además ffmpeg
+pip install pillow numpy                    # requiere además ffmpeg
 cd src
-python3 build.py                # los tres  (~5 min)
-python3 build.py replay         # solo uno
+python3 build.py                            # las tres horizontales (~5 min)
+python3 build.py replay                     # solo una
 python3 build.py iris --preview 10,24,36
+FORMAT=vertical python3 build.py reel       # la vertical
 ```
+
+`FORMAT=vertical` cambia el frame a 1080×1920 y todo lo demás se deriva de ahí.
+Cada estilo declara el formato en el que funciona y `build.py` avisa si se lanza
+en el otro, así que no hay forma de renderizar el reel en 16:9 por descuido.
 
 `build.py` comprueba en cada render que la ventana opaca contiene el punto de
 corte y que el alpha sobrevivió a la codificación.
@@ -90,13 +108,15 @@ pruebas a costa del antialiasing en las diagonales.
 ### Estructura
 
     src/common.py    paleta, easing, geometría, assets, pipeline y codificación
-    src/sweep.py     estilo 1
-    src/iris.py      estilo 2
-    src/replay.py    estilo 3
+    src/sweep.py     estilo 1 — barrido      16:9
+    src/iris.py      estilo 2 — iris         16:9
+    src/replay.py    estilo 3 — replay       16:9
+    src/reel.py      estilo 4 — reel         9:16
     src/build.py     CLI
 
-Un estilo es un módulo que expone `NAME`, `TITLE`, `CUT_POINT` y
-`frame(f) -> RGBA`. Añadir uno nuevo es escribir ese módulo y sumarlo a `STYLES`.
+Un estilo es un módulo que expone `NAME`, `TITLE`, `CUT_POINT`, opcionalmente
+`FORMAT`, y `frame(f) -> RGBA`. Añadir uno nuevo es escribir ese módulo y sumarlo
+a `STYLES`.
 
 ### Nota sobre el alpha en WebM
 
